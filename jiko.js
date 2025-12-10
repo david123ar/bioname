@@ -853,11 +853,11 @@ app.get('/', (req, res) => {
 // 7. START SERVER
 // =========================================================
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-    console.log('--- Post Visibility Logic ---');
-    console.log(`Total Posts in List: ${originalData.length}`);
-    console.log(`Initial Reveal Date (Logic Anchor): 2025-12-09T23:00:00+05:30 (IST)`);
-    console.log(`Current Visible Posts (#1 to #N): ${getVisiblePostCount()}`);
-    console.log(`Display Order: Decending (Newest post at the top)`);
-});
+// app.listen(port, () => {
+//     console.log(`Server running at http://localhost:${port}`);
+//     console.log('--- Post Visibility Logic ---');
+//     console.log(`Total Posts in List: ${originalData.length}`);
+//     console.log(`Initial Reveal Date (Logic Anchor): 2025-12-09T23:00:00+05:30 (IST)`);
+//     console.log(`Current Visible Posts (#1 to #N): ${getVisiblePostCount()}`);
+//     console.log(`Display Order: Decending (Newest post at the top)`);
+// });
