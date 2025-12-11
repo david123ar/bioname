@@ -1,18 +1,13 @@
 // poste/jiko.js 
 
 const express = require('express');
-const path = require('path'); // Added for Vercel static pathing
 const app = express();
-// const port = 3000; // Removed app.listen and port for Vercel
+const port = 3000;
 
 // =========================================================
 // !!! CRITICAL VERCEL FIX: EXPORT AND STATIC FILE SETUP !!!
 // =========================================================
-
-// Fix for static files: Use a path that works reliably across environments
-// Assuming images like design8.jpeg are still in the 'poste' folder, 
-// we need to go up one level (..) then back down into 'poste' to ensure Vercel finds them.
-app.use(express.static(path.join(__dirname, '..', 'poste'))); 
+app.use(express.static(__dirname)); 
 
 
 // =========================================================
@@ -880,5 +875,11 @@ app.get('/', (req, res) => {
 // 7. EXPORT THE APP FOR VERCEL (CRITICAL FIX)
 // =========================================================
 
-// This line is mandatory for Vercel to treat this file as a serverless function entry point
-module.exports = app;
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+    console.log('--- Post Visibility Logic ---');
+    console.log(`Total Posts in List: ${originalData.length}`);
+    console.log(`Initial Reveal Date (Logic Anchor): 2025-12-09T23:00:00+05:30 (IST)`);
+    console.log(`Current Visible Posts (#1 to #N): ${getVisiblePostCount()}`);
+    console.log(`Display Order: Decending (Newest post at the top)`);
+});
