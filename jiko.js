@@ -1,13 +1,18 @@
-// poste/jiko.js (Run this file using Node.js: node poste/jiko.js)
+// poste/jiko.js 
 
 const express = require('express');
+const path = require('path'); // Added for Vercel static pathing
 const app = express();
-const port = 3000;
+// const port = 3000; // Removed app.listen and port for Vercel
 
 // =========================================================
-// !!! CRITICAL FIX: STATIC FILE SETUP !!!
+// !!! CRITICAL VERCEL FIX: EXPORT AND STATIC FILE SETUP !!!
 // =========================================================
-app.use(express.static(__dirname)); 
+
+// Fix for static files: Use a path that works reliably across environments
+// Assuming images like design8.jpeg are still in the 'poste' folder, 
+// we need to go up one level (..) then back down into 'poste' to ensure Vercel finds them.
+app.use(express.static(path.join(__dirname, '..', 'poste'))); 
 
 
 // =========================================================
@@ -342,7 +347,7 @@ const allPosts = [...originalData].reverse();
  * * @returns {number} The total count of OLDEST posts revealed.
  */
 function getVisiblePostCount() {
-    // Current time: Wednesday, December 10, 2025 at 7:45:57 PM IST.
+    // Current time: Thursday, December 11, 2025 at 11:12:22 AM IST.
     // Set the conceptual start date for the cycle, with 2 posts already revealed.
     const INITIAL_REVEAL_DATE_MS = new Date('2025-12-09T23:00:00+05:30').getTime(); 
     const REVEAL_RATE = 2; // 2 posts per day
@@ -596,9 +601,9 @@ function getClientScript() {
     }
 
     // Slab Creation Function
-    function createSauceSlab(title, index, totalPosts, theme, isVisible) {
+    function createSauceSlab(title, index, totalPosts, theme, isVisible, isNextUpcoming) {
         // Post number must be calculated based on the position in the *original, ascending list*
-        // Since the current list (visibleData) is reversed (Newest=0, Oldest=N-1):
+        // Since the current list (allPosts) is reversed (Newest=0, Oldest=N-1):
         const postNumber = totalPosts - index; 
         
         const unlockedTitles = getUnlockedTitles();
@@ -672,12 +677,17 @@ function getClientScript() {
             container.onclick = null;
         };
 
-        if (!isVisible) {
+        if (isVisible) {
+            if (isPermanentlyUnlocked) {
+                renderUnlocked();
+            } else {
+                renderLocked();
+            }
+        } else if (isNextUpcoming) { // Only render if it's one of the next two posts
             renderBlocked();
-        } else if (isPermanentlyUnlocked) {
-            renderUnlocked();
         } else {
-            renderLocked();
+            // Do not render posts far in the future
+            return null; 
         }
 
         return container;
@@ -779,16 +789,35 @@ function getClientScript() {
         // 2. Insert dynamic links using DOM manipulation
         const linksContainer = document.getElementById('bio-links-container');
         if (linksContainer) {
+            let upcomingCount = 0; // Tracks how many 'Coming Soon' posts we have rendered
+            
             // allPosts is already reversed (Newest at index 0). We iterate through all posts.
             allPosts.forEach((title, index) => { 
-                // Determine visibility: The post is visible if its sequential number (#1 to #N) 
-                // is less than or equal to the total number of revealed posts (visibleCount).
-                // Sequential Number (1-based) = totalPosts - index
+                // Sequential Number (1-based, OLDEST to NEWEST) = totalPosts - index
                 const sequentialNumber = totalPosts - index;
+                
+                // A post is considered 'Visible' (released) if its sequential number is less than or equal to the total revealed posts.
                 const isVisible = sequentialNumber <= visibleCount;
+                
+                // A post is considered 'Next Upcoming' if it is NOT visible (released) 
+                // AND it is one of the next 2 posts to be released.
+                const isNextUpcoming = !isVisible && (sequentialNumber > visibleCount) && (sequentialNumber <= visibleCount + 2) && (upcomingCount < 2);
 
-                const slab = createSauceSlab(title, index, totalPosts, theme, isVisible); 
-                linksContainer.appendChild(slab);
+                let slab = null;
+                
+                // If it's visible, render it normally (unlocked or locked/revealable)
+                if (isVisible) {
+                    slab = createSauceSlab(title, index, totalPosts, theme, true, false);
+                } 
+                // If it's one of the two next upcoming posts, render the 'Coming Soon' slab
+                else if (isNextUpcoming) {
+                    slab = createSauceSlab(title, index, totalPosts, theme, false, true);
+                    upcomingCount++; // Increment the counter for limited display
+                }
+
+                if (slab) {
+                    linksContainer.appendChild(slab);
+                }
             });
         }
     }
@@ -813,8 +842,6 @@ app.get('/', (req, res) => {
     const { adScriptTop, adScriptBottom } = getAdHtml();
 
     // Data injected to the client:
-    // We send the full, reversed list and the total number of visible posts.
-    // The client-side logic will decide whether to display a post as 'revealed' or 'blocked'.
     const clientData = {
         allPosts: allPosts, // Reversed: Newest (0) to Oldest (N-1)
         visibleCount: totalVisibleCount, // Total #1, #2, ... #N that should be accessible
@@ -849,21 +876,9 @@ app.get('/', (req, res) => {
     res.send(htmlContent);
 });
 
-// ... (Your Express route app.get('/') is defined here) ...
-
 // =========================================================
-// 7. EXPORT THE APP FOR VERCEL
-// =========================================================
-module.exports = app; // <--- ADD THIS LINE HERE
-// =========================================================
-// 7. START SERVER
+// 7. EXPORT THE APP FOR VERCEL (CRITICAL FIX)
 // =========================================================
 
-// app.listen(port, () => {
-//     console.log(`Server running at http://localhost:${port}`);
-//     console.log('--- Post Visibility Logic ---');
-//     console.log(`Total Posts in List: ${originalData.length}`);
-//     console.log(`Initial Reveal Date (Logic Anchor): 2025-12-09T23:00:00+05:30 (IST)`);
-//     console.log(`Current Visible Posts (#1 to #N): ${getVisiblePostCount()}`);
-//     console.log(`Display Order: Decending (Newest post at the top)`);
-// });
+// This line is mandatory for Vercel to treat this file as a serverless function entry point
+module.exports = app;
